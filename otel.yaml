@@ -1,0 +1,88 @@
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel
+  namespace: observability
+spec:
+  mode: deployment
+  image: otel/opentelemetry-collector-contrib:0.145.0
+
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      batch: {}
+
+      attributes/logs:
+        actions:
+          - key: trace_id
+            from_context: trace_id
+            action: upsert
+
+          - key: span_id
+            from_context: span_id
+            action: upsert
+
+      transform/logs:
+        log_statements:
+          - context: log
+            statements:
+              - set(resource.attributes["trace_id"], attributes["trace_id"])
+              - set(resource.attributes["span_id"], attributes["span_id"])
+
+    exporters:
+      zipkin:
+        endpoint: "http://zipkin.observability:9411/api/v2/spans"
+
+      otlphttp:
+        endpoint: "http://loki.observability:3100/otlp"
+
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+
+      debug:
+        verbosity: detailed
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [zipkin]
+
+        metrics:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [prometheus]
+
+        logs:
+          receivers: [otlp]
+          processors: [attributes/logs, transform/logs, batch]
+          exporters: [otlphttp, debug]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: observability
+spec:
+  selector:
+    app.kubernetes.io/name: otel-collector
+  ports:
+    - name: metrics
+      port: 8889
+      targetPort: 8889
+
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318

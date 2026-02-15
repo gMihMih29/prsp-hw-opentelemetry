@@ -1,0 +1,27 @@
+replicaCount: 1
+image:
+  repository: aadan1lov/muffin-wallet
+  tag: "1.2.0"
+  pullPolicy: Always
+service:
+  type: ClusterIP
+  port: 80
+secret:
+  name: muffin-wallet
+envConfigMap:
+  name: muffin-wallet-env
+configMap:
+  name: muffin-wallet
+  database:
+    host: host.minikube.internal
+    port: 5432
+    name: muffin_wallet
+    username: muffin-wallet
+    password: muffin-wallet
+ingress:
+  className: nginx
+  host: muffin-wallet.ru
+  servicePort: 80
+currencyService:
+  host: muffin-currency
+  port: 8083

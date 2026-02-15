@@ -1,0 +1,31 @@
+adminPassword: admin
+service:
+  type: ClusterIP
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        uid: prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus.observability.svc:9090
+        isDefault: true
+        jsonData:
+          httpMethod: POST
+          timeInterval: 15s
+      - name: Loki
+        uid: loki
+        type: loki
+        access: proxy
+        url: http://loki.observability:3100
+        jsonData:
+          derivedFields:
+            - name: traceId
+              matcherRegex: '(?:trace[_-]?(?:id|ID|Id)\\s*[=:]\\s*|\\btrace(?:ID|Id|id)\\b\\s?:\\s?)([A-Fa-f0-9]{16,32})'
+              url: http://localhost:9411/zipkin/traces/$${__value.raw}
+      - name: Zipkin
+        uid: zipkin
+        type: zipkin
+        access: proxy
+        url: http://zipkin.observability:9411

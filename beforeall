@@ -1,0 +1,5 @@
+Добавьте в /etc/hosts
+```
+<ip вашей машины, где БД> roothost
+<minikube ip> muffin-wallet.ru
+```
